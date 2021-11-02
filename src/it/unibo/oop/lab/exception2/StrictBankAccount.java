@@ -11,6 +11,7 @@ public class StrictBankAccount implements BankAccount {
     private final int usrID;
     private double balance;
     private int totalTransactionCount;
+    private int ATMTransactionCount;
     private final int maximumAllowedATMTransactions;
     private static final double ATM_TRANSACTION_FEE = 1;
     private static final double MANAGEMENT_FEE = 5;
@@ -36,10 +37,9 @@ public class StrictBankAccount implements BankAccount {
      * {@inheritDoc}
      */
     public void deposit(final int usrID, final double amount) {
-        if (checkUser(usrID)) {
-            this.balance += amount;
-            increaseTransactionsCount();
-        }
+    	checkUser(usrID);
+        this.balance += amount;
+        increaseTransactionsCount();
     }
 
     /**
@@ -47,21 +47,25 @@ public class StrictBankAccount implements BankAccount {
      * {@inheritDoc}
      */
     public void withdraw(final int usrID, final double amount) {
-        if (checkUser(usrID) && isWithdrawAllowed(amount)) {
-            this.balance -= amount;
-            increaseTransactionsCount();
-        }
+    	checkUser(usrID);
+    	isWithdrawAllowed(amount);
+        this.balance -= amount;
+        increaseTransactionsCount();
     }
 
+    private void checkTransactionCount() {
+    	if(totalTransactionCount >= maximumAllowedATMTransactions)
+    		throw new TransactionsOverQuotaException(maximumAllowedATMTransactions);
+    }
+    
     /**
      * 
      * {@inheritDoc}
      */
     public void depositFromATM(final int usrID, final double amount) {
-        if (totalTransactionCount < maximumAllowedATMTransactions) {
-            this.deposit(usrID, amount - StrictBankAccount.ATM_TRANSACTION_FEE);
-            increaseTransactionsCount();
-        }
+        checkTransactionCount();
+        this.deposit(usrID, amount - StrictBankAccount.ATM_TRANSACTION_FEE);
+        increaseATMTransactionCount();
     }
 
     /**
@@ -69,9 +73,9 @@ public class StrictBankAccount implements BankAccount {
      * {@inheritDoc}
      */
     public void withdrawFromATM(final int usrID, final double amount) {
-        if (totalTransactionCount < maximumAllowedATMTransactions) {
-            this.withdraw(usrID, amount + StrictBankAccount.ATM_TRANSACTION_FEE);
-        }
+        checkTransactionCount();
+        this.withdraw(usrID, amount + StrictBankAccount.ATM_TRANSACTION_FEE);
+        increaseATMTransactionCount();
     }
 
     /**
@@ -96,22 +100,30 @@ public class StrictBankAccount implements BankAccount {
      *            id of the user related to these fees
      */
     public void computeManagementFees(final int usrID) {
+    	checkUser(usrID);
         final double feeAmount = MANAGEMENT_FEE + (totalTransactionCount * StrictBankAccount.TRANSACTION_FEE);
-        if (checkUser(usrID) && isWithdrawAllowed(feeAmount)) {
-            balance -= MANAGEMENT_FEE + totalTransactionCount * StrictBankAccount.TRANSACTION_FEE;
-            totalTransactionCount = 0;
+        isWithdrawAllowed(feeAmount);
+        balance -= MANAGEMENT_FEE + totalTransactionCount * StrictBankAccount.TRANSACTION_FEE;
+        totalTransactionCount = 0;
+    }
+
+    private void checkUser(final int id) {
+        if(this.usrID != id) {
+        	throw new WrongAccountHolderException(id);
         }
     }
 
-    private boolean checkUser(final int id) {
-        return this.usrID == id;
-    }
-
-    private boolean isWithdrawAllowed(final double amount) {
-        return balance > amount;
+    private void isWithdrawAllowed(final double amount) {
+        if(balance < amount) {
+        	throw new NotEnoughFundsException(balance, amount);
+        }
     }
 
     private void increaseTransactionsCount() {
         totalTransactionCount++;
+    }
+    
+    private void increaseATMTransactionCount() {
+    	ATMTransactionCount++;
     }
 }
