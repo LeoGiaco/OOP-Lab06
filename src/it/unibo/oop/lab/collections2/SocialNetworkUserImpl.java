@@ -1,7 +1,12 @@
 package it.unibo.oop.lab.collections2;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 
@@ -29,7 +34,7 @@ public class SocialNetworkUserImpl<U extends User> extends UserImpl implements S
      * 
      * think of what type of keys and values would best suit the requirements
      */
-
+	Map<String, Set<U>> circles;
     /*
      * [CONSTRUCTORS]
      * 
@@ -56,6 +61,11 @@ public class SocialNetworkUserImpl<U extends User> extends UserImpl implements S
      */
     public SocialNetworkUserImpl(final String name, final String surname, final String user, final int userAge) {
         super(name, surname, user, userAge);
+        this.circles = new HashMap<>();
+    }
+    
+    public SocialNetworkUserImpl(final String name, final String surname, final String user) {
+    	this(name, surname, user, -1);
     }
 
     /*
@@ -66,17 +76,36 @@ public class SocialNetworkUserImpl<U extends User> extends UserImpl implements S
 
     @Override
     public boolean addFollowedUser(final String circle, final U user) {
-        return false;
+        if(!this.circles.containsKey(circle)) {
+        	this.circles.put(circle, new HashSet<>());
+        }
+        return this.circles.get(circle).add(user);
     }
 
     @Override
     public Collection<U> getFollowedUsersInGroup(final String groupName) {
-        return null;
+//        if(!this.circles.containsKey(groupName)) {
+//        	return Set.of();
+//        }
+//        return Set.copyOf(this.circles.get(groupName));
+    	Set<U> out = new HashSet<>();
+    	if(this.circles.containsKey(groupName)) {
+    		for (U user : this.circles.get(groupName)) {
+				out.add(user);
+			}
+    	}
+    	return out;
     }
 
     @Override
     public List<U> getFollowedUsers() {
-        return null;
+        ArrayList<U> out = new ArrayList<>();
+        for (String circle : this.circles.keySet()) {
+			for (U user : this.circles.get(circle)) {
+				out.add(user);
+			}
+		}
+        return out;
     }
 
 }
